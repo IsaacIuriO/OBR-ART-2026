@@ -111,7 +111,7 @@ def diag_tr(p, n):
 # PASSO 0: ESPERA INICIAL
 print("Aguardando 54 segundos...")
 hub.light.on(Color.RED) 
-wait(500)
+wait(54000)
 
 # Sinal de início
 hub.light.on(Color.ORANGE)
@@ -125,13 +125,13 @@ caranguejo_esq(90)
 wait(3800)
 giro_correcao(30)
 
-wait(2000)
+wait(5000)
 
 diag_tl(150, 2)
 wait(2500)
 giro_correcao(30)
 
-wait(2000)
+wait(3000)
 
 diag_tl(150, 5)
 wait(2500)
