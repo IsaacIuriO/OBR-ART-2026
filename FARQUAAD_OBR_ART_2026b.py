@@ -1,149 +1,153 @@
 from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor
-from pybricks.parameters import Port, Color
+from pybricks.parameters import Axis, Color, Direction, Port
 from pybricks.tools import wait
+from pybricks.robotics import DriveBase
 
-hub = PrimeHub()
+hub = PrimeHub(Axis.X, Axis.Z)
 
 # --- CONFIGURAÇÕES ---
-POTENCIA_ALVO = 90  
-PASSO_RAMPA   = 2   
 
-# MOTORES
-motor_fl = Motor(Port.B) # Frente Esq
-motor_fr = Motor(Port.A) # Frente Dir
-motor_rl = Motor(Port.E) # Trás Esq
-motor_rr = Motor(Port.F) # Trás Dir
+POTENCIA_ALVO = 90
+PASSO_RAMPA   = 2
 
+# --- MOTORES ---
+
+motor_fl = Motor(Port.A) # Frente Esq
+motor_fr = Motor(Port.B, Direction.COUNTERCLOCKWISE) # Frente Dir
+motor_tl = Motor(Port.E, Direction.COUNTERCLOCKWISE) # Trás Esq
+motor_tr = Motor(Port.F) # Trás Dir
+
+robo = DriveBase(motor_tl, motor_tr, 59, 170)
+robo.use_gyro(True)
+
+# ==========================================
 # --- FUNÇÕES DE SUPORTE ---
+# ==========================================
+# ----- LÓGICA MECANUM -----
+# ==========================================
 
-def parar():
-    motor_fl.stop()
-    motor_fr.stop()
-    motor_rl.stop()
-    motor_rr.stop()
-    wait(500)
+"de Ré"
+def re_reto(p):
 
-def aplicar_caranguejo_dir(p):
-    """Lógica Mecanum para deslizar à direita"""
-    motor_fl.dc(p)
-    motor_fr.dc(p)
-    motor_rl.dc(-p)
-    motor_rr.dc(-p)
-
-def aplicar_caranguejo_esq(p):
-    """Lógica Mecanum para deslizar à esquerda"""
-    motor_fl.dc(p)
-    motor_fr.dc(p)
-    motor_rl.dc(-p)
-    motor_rr.dc(-p)
-
-def aplicar_re_reto(p):
     """
     Lógica para andar de ré compensando o desvio à direita.
-    Ajuste o fator_correcao se ele ainda entortar:
+    Ajuste o fator_cotrmotor_trecao se ele ainda entortar:
     - Menor que 0.85: Esquerda fica mais fraca.
     - Maior que 0.85: Esquerda fica mais forte.
     """
-    fator_correcao = 0.75 
-    motor_fl.dc(-(p * fator_correcao)) 
-    motor_rl.dc(p * fator_correcao)    
+
+    fator_cotrmotor_trecao = 0.75 
+    motor_fl.dc(-(p * fator_cotrmotor_trecao)) 
+    motor_tl.dc(p * fator_cotrmotor_trecao)    
     motor_fr.dc(p)                     
-    motor_rr.dc(-p)
+    motor_tr.dc(-p)
 
-def mini_giro(p):
-    """Lógica Mecanum para giro anti-horario"""
-    motor_fl.dc(p) #i
-    motor_fr.dc(p) #n
-    motor_rl.dc(p) #i
-    motor_rr.dc(p) #n
+"Deslizar à esquerda"
+def caranguejo_esq(p):
+    motor_fl.dc(p+15)
+    motor_fr.dc(-p)
+    motor_tl.dc(p)
+    motor_tr.dc(-p+15)
 
-    # Giro antihorário (normal)
-    # fl: -p
-    # fr: p
-    # rl: -p
-    # rr: p          
+"Diagona à esquerda trás"
+def diag_tl(p, n):
+    motor_fl.dc(-(p/n))
+    motor_fr.dc(-2*p)
+    motor_tl.dc(-(p/n))
+    motor_tr.dc(-2*p)
 
+"Parar"
+def parar():
+    motor_fl.stop()
+    motor_fr.stop()
+    motor_tl.stop()
+    motor_tr.stop()
+    wait(500)
+
+def giro_correcao(p):
+    erro = 2 # número qualquer maior que 1
+    erro_min = 0.5
+    while erro > erro_min or erro < -erro_min:
+        ang = robo.angle()
+        erro = 0 - ang
+
+        if erro > erro_min:
+            motor_fl.dc(-p)
+            motor_fr.dc(p)
+            motor_tl.dc(p)
+            motor_tr.dc(-p)
+            wait(5)
+        elif erro < -erro_min:
+            motor_fl.dc(p)
+            motor_fr.dc(-p)
+            motor_tl.dc(-p)
+            motor_tr.dc(p)
+            wait(5)
+        else:
+            break
+        
+    parar()
+    robo.reset()
+
+"Deslizar à direita"
+def caranguejo_dir(p):
+    motor_fl.dc(-p)
+    motor_fr.dc(p)
+    motor_tl.dc(-p)
+    motor_tr.dc(p)
+
+"Diagonal à direita trás"
+def diag_tr(p, n):
+    motor_fl.dc(-2*p)
+    motor_fr.dc(-(p/n))
+    motor_tl.dc(-2*p)
+    motor_tr.dc(-(p/n))
+
+# ==========================================
 # --- EXECUÇÃO ---
+# ==========================================
 
 # PASSO 0: ESPERA INICIAL
-print("Aguardando 55 segundos...")
-hub.light.on(Color.ORANGE) 
-wait(54000)
+hub.light.on(Color.RED) 
+for i in range(54, -1, -1):
+    print(f"Aguardando {i} segundos...")
+    wait(1000)
 
 # Sinal de início
-hub.light.on(Color.RED)
-wait(1000)
+hub.light.on(Color.ORANGE)
+wait(500)
 
 # ==========================================
-# FASE 1: CARANGUEJO PARA ESQUERDA (7.5s)
+# PASSO 1: CARANGUEJO PARA ESQUERDA
 # ==========================================
-hub.light.on(Color.CYAN)
 
-# Aceleração
-for p in range(20, POTENCIA_ALVO + 1, PASSO_RAMPA):
-    aplicar_caranguejo_esq(p)
-    wait(30)
+caranguejo_esq(90)
+wait(3800)
+giro_correcao(30)
 
-wait(2500) 
-
-# Frenagem
-for p in range(POTENCIA_ALVO, 19, -PASSO_RAMPA * 2):
-    aplicar_caranguejo_esq(p)
-    wait(30)
-
-parar()
-
-# ==========================================
-# FASE 2: ANDAR DE RÉ (3s - COM CORREÇÃO)
-# ==========================================
-hub.light.on(Color.BLUE)
-
-# Aceleração
-for p in range(20, POTENCIA_ALVO + 1, PASSO_RAMPA):
-    aplicar_re_reto(p)
-    wait(30)
-
-wait(1500) 
-
-# Frenagem
-for p in range(POTENCIA_ALVO, 19, -PASSO_RAMPA * 2):
-    aplicar_re_reto(p)
-    wait(30)
-
-parar()
 wait(5000)
 
 # ==========================================
-# FASE 3: ANDAR DE RÉ (3s - COM CORREÇÃO)
-# ==========================================
-hub.light.on(Color.GREEN)
-
-# Aceleração
-for p in range(20, POTENCIA_ALVO + 1, PASSO_RAMPA):
-    aplicar_re_reto(p)
-    wait(30)
-
-wait(1000) 
-
-# Frenagem
-for p in range(POTENCIA_ALVO, 19, -PASSO_RAMPA * 2):
-    aplicar_re_reto(p)
-    wait(30)
-
-parar()
-
-# ==========================================
-# FASE 4: MINI-GIRO (0.3s - COM CORREÇÃO)
+# PASSO 2: PARA TRÁS
 # ==========================================
 
-hub.light.on(Color.MAGENTA)
+diag_tl(150, 2)
+wait(2500)
+giro_correcao(30)
 
-mini_giro(55)
-wait(300)
+wait(3000)
 
-parar()
+# ==========================================
+# PASSO 3: PARA TRÁS ATÉ CASTELO
+# ==========================================
 
-# FIM
-hub.light.on(Color.GREEN)
-print("Missão concluída!")
+diag_tl(150, 5)
+wait(2500)
+giro_correcao(30)
+
+# Medir o angulo atual do robo
+# while True:
+#     ang = robo.angle()
+#     print(f'{ang:.2f}')
+#     wait(20)
