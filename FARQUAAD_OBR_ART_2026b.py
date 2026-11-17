@@ -65,6 +65,8 @@ def parar():
     motor_tr.stop()
     wait(500)
 
+
+"Giro de correção de guinada"
 def giro_correcao(p):
     erro = 2 # número qualquer maior que 1
     erro_min = 0.5
@@ -129,7 +131,7 @@ giro_correcao(30)
 wait(5000)
 
 # ==========================================
-# PASSO 2: PARA TRÁS
+# PASSO 2: PARA TRÁS (METADE)
 # ==========================================
 
 diag_tl(150, 2)
